@@ -1,6 +1,18 @@
 name: Build
 
-on: [push]
+on:
+  push:
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -14,14 +26,14 @@ jobs:
           - 100
           - 200
         os:
-          - ubuntu-20.04
-          - windows-2019
+          - ubuntu-22.04
+          - windows-2022
 
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             os_short: linux
 
-          - os: windows-2019
+          - os: windows-2022
             os_short: win
 
     steps:
@@ -41,7 +53,7 @@ jobs:
           echo "CXX=clang++" >> $GITHUB_ENV
           
       - name: Setting up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10' 
 
@@ -51,21 +63,21 @@ jobs:
           pip install git+https://github.com/alliedmodders/ambuild
 
       - name: Checking out MM:Source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           repository: alliedmodders/metamod-source
           ref: master
           path: metamod-source
 
       - name: Checking out hl2sdk-css
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           repository: alliedmodders/hl2sdk
           ref: css
           path: hl2sdk-css
 
       - name: Checking out own repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           path: TickrateEnabler
 
@@ -83,6 +95,8 @@ jobs:
           
   release:
     name: Release
+    permissions:
+      contents: write
     if: github.ref_type == 'tag'
     needs: build
     runs-on: ubuntu-latest
@@ -90,7 +104,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
 
-      - name: Arhive Assets
+      - name: Archive Assets
         shell: bash
         run: find * -maxdepth 0 -type d -exec zip -r {}.zip {} \;
 
